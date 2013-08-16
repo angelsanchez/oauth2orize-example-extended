@@ -1,0 +1,15 @@
+{
+  "name": "oauth2orize-example",
+  "version": "0.0.0",
+  "dependencies": {
+    "express": "3.3.5",
+    "passport": "0.1.17",
+    "oauth2orize": "0.1.0",
+    "passport-local": "0.1.6",
+    "passport-http": "0.2.2",
+    "passport-http-bearer": "1.0.1",
+    "ejs": "0.8.4",
+    "passport-oauth2-client-password": "0.1.1",
+    "connect-ensure-login": "0.1.1"
+  }
+}
