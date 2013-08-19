@@ -39,7 +39,7 @@ There are two services that consume protected services:
 ```
 
 * Returns all user personal data:
-`http://localhost:8080/userfullinfo`
+`http://localhost:8080/personaldata`
 ```json
 {"id":"1","username":"bob","password":"secret","name":"Bob Smith","phoneNumber":"785-873-3930","email":"bob@email.com","address":"968 Sherman Street, Everest","birthday":"02-02-1992"}
 ```
@@ -48,7 +48,7 @@ You can change the scopes in `client/app.js`:
 
 ```js
 app.get('/auth/appexample',
-  passport.authenticate('appexample', { scope: 'userinfo userfullinfo' }),
+  passport.authenticate('appexample', { scope: 'userinfo personaldata' }),
   function(req, res){
     console.log("Authorizating...")
   }
