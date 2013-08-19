@@ -3,6 +3,10 @@ var express = require('express')
   , AppStrategy = require('./auth').Strategy
   , utils = require('./utils')
   , partials = require('express-partials')
+  , http = require('http')
+  , querystring = require('querystring')
+  , fs = require('fs')
+  , users = require('./db/users.js')
 
 
 var CLIENT_ID = "abc123";
@@ -18,11 +22,13 @@ var CALLBACK_URL = "http://localhost:8080/auth/appexample/callback";
 //   have a database of user records, the complete appexample profile is
 //   serialized and deserialized.
 passport.serializeUser(function(user, done) {
-  done(null, user);
+  done(null, user.id); // id stored in a delicious cookie
 });
 
-passport.deserializeUser(function(obj, done) {
-  done(null, obj);
+passport.deserializeUser(function(id, done) {
+  users.find(id, function (err, user) {
+    done(null, user); // Now req.user == user
+  })
 });
 
 
@@ -42,16 +48,13 @@ passport.use(new AppStrategy({
     // asynchronous verification, for effect...
     // http://howtonode.org/understanding-process-next-tick
     process.nextTick(function () {
-      
-      // To keep the example simple, the user's appexample profile is returned to
-      // represent the logged-in user.  In a typical application, you would want
-      // to associate the appexample account with a user record in your database,
-      // and return that user instead.
 
-      profile.accessToken = accessToken;
+      users.updateOrCreate(profile, accessToken, refreshToken, function(err, user) {
+        if(err) { throw err; }
+        done(null, user);
+      });
 
-      return done(null, profile);
-    });
+    });    
   }
 ));
 
@@ -65,7 +68,7 @@ app.configure(function() {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
   app.use(partials());
-  //app.use(express.logger());
+  app.use(express.logger());
   app.use(express.cookieParser());
   app.use(express.bodyParser());
   app.use(express.methodOverride());
@@ -111,7 +114,8 @@ app.get('/auth/appexample/callback',
   passport.authenticate('appexample', { failureRedirect: '/login' }),
   function(req, res) {
     res.redirect('/');
-  });
+  }
+);
 
 app.get('/logout', function(req, res){
   req.logout();
@@ -138,6 +142,52 @@ app.get('/personaldata', ensureAuthenticated, function (req, res) {
     if (err) { return new Error('failed to fetch user full info: ' + err.message); }
     res.send(data);
   })
+});
+
+
+//
+// Refresh token
+//
+app.get('/refresh_token', ensureAuthenticated, function (req, res) {
+  var post_data = querystring.stringify({
+    client_id : CLIENT_ID,
+    client_secret : CLIENT_SECRET,
+    grant_type : 'refresh_token',
+    refresh_token : req.user.refreshToken
+  });
+
+  var options = {
+    host: 'localhost',
+    path: '/oauth/token',
+    port: '3000',
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Length': post_data.length
+    }
+  };
+
+  var post_req = http.request(options, function (response) {
+    var str = '';
+
+    response.setEncoding('utf8');
+    response.on('data', function (chunk) {
+      str += chunk;
+    });
+
+    response.on('end', function () {
+      
+      var data = JSON.parse(str);
+      req.user.accessToken = data.access_token;
+      req.user.refreshToken = data.refresh_token;
+
+      res.send(str);
+    });
+  })
+
+  // post the data
+  post_req.write(post_data);
+  post_req.end();
 });
 
 app.listen(8080);

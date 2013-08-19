@@ -22,7 +22,7 @@ function getProtectedResource (path, accessToken, done) {
 
   }).on("error", function(e){
   	done(e);
-  });;
+  });
 }
 
 exports.getProtectedResource = getProtectedResource;

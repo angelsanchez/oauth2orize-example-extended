@@ -132,14 +132,50 @@ server.exchange(oauth2orize.exchange.code(function(client, code, redirectURI, do
     if (redirectURI !== authCode.redirectURI) { return done(null, false); }
     
     var token = utils.uid(256);
+    var refreshToken = utils.uid(256);
     
     console.log("* Get access token [" + token + "] code[" + code + "] scope[" + authCode.scope + "]");
 
-    db.accessTokens.save(token, authCode.userID, authCode.clientID, authCode.scope, function(err) {
+    db.accessTokens.save(token, refreshToken, authCode.userID, authCode.clientID, authCode.scope, function(err) {
       if (err) { return done(err); }
-      done(null, token, null, { 'expires_in': 3600 });
+      done(null, token, refreshToken, { 'expires_in': 3600 }); // expires_in: only for client information
     });
   });
+}));
+
+server.exchange(oauth2orize.exchange.refreshToken(function(client, refreshToken, scope, done) {
+  console.log("* Refresh access token client[", client, "] refreshToken[" + refreshToken + "]");
+
+  db.accessTokens.findRefresh(refreshToken, function (err, accessTokenToRefresh) {
+    if (err) { return done(err); }
+
+    console.log("- refresh token valid");
+
+    db.accessTokens.find(accessTokenToRefresh, function (err, accessTokenDB) {
+      if (err) { return done(err); }
+
+      console.log("- old access token found");
+
+      var newToken = utils.uid(256);
+      var newRefreshToken = utils.uid(256);
+
+      db.accessTokens.save(newToken, newRefreshToken, accessTokenDB.userID, accessTokenDB.clientID, accessTokenDB.scope, function(err) {
+        if (err) { return done(err); }
+
+        console.log("- new access/refresh token saved");
+
+        db.accessTokens.delete(accessTokenToRefresh, function (err) {
+          if (err) { return done(err); }
+
+          console.log("- old access token deleted");
+          
+          done(null, newToken, newRefreshToken, { 'expires_in': 3600 });
+        });
+
+      });
+    });
+  });
+
 }));
 
 // token endpoint
