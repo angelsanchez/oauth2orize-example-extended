@@ -34,56 +34,6 @@ server.deserializeClient(function(id, done) {
   });
 });
 
-// Register supported grant types.
-//
-// OAuth 2.0 specifies a framework that allows users to grant client
-// applications limited access to their protected resources.  It does this
-// through a process of the user granting access, and the client exchanging
-// the grant for an access token.
-
-// Grant authorization codes.  The callback takes the `client` requesting
-// authorization, the `redirectURI` (which is used as a verifier in the
-// subsequent exchange), the authenticated `user` granting access, and
-// their response, which contains approved scope, duration, etc. as parsed by
-// the application.  The application issues a code, which is bound to these
-// values, and will be exchanged for an access token.
-
-// 3
-server.grant(oauth2orize.grant.code(function(client, redirectURI, user, ares, done) {
-  var code = utils.uid(16);
-
-  console.log("* Get grant code client[", client, "] code[", code ,"] ares[", ares ,"] user[", user ,"]");
-  
-  db.authorizationCodes.save(code, client.id, redirectURI, user.id, ares.scope, function(err) {
-    if (err) { return done(err); }
-    done(null, code);
-  });
-}));
-
-// Exchange authorization codes for access tokens.  The callback accepts the
-// `client`, which is exchanging `code` and any `redirectURI` from the
-// authorization request for verification.  If these values are validated, the
-// application issues an access token on behalf of the user who authorized the
-// code.
-
-// 4
-server.exchange(oauth2orize.exchange.code(function(client, code, redirectURI, done) {
-  db.authorizationCodes.find(code, function(err, authCode) {
-    if (err) { return done(err); }
-    if (client.id !== authCode.clientID) { return done(null, false); }
-    if (redirectURI !== authCode.redirectURI) { return done(null, false); }
-    
-    var token = utils.uid(256);
-    
-    console.log("* Get access token [" + token + "] code[" + code + "] scope[" + authCode.scope + "]");
-
-    db.accessTokens.save(token, authCode.userID, authCode.clientID, authCode.scope, function(err) {
-      if (err) { return done(err); }
-      done(null, token);
-    });
-  });
-}));
-
 
 
 // user authorization endpoint
@@ -134,22 +84,63 @@ exports.authorization = [
 // client, the above grant middleware configured above will be invoked to send
 // a response.
 
-/*
-exports.decision = [
-  login.ensureLoggedIn(),
-  server.decision()
-]
-*/
-
 // 2
 exports.decision = [
-       login.ensureLoggedIn(),
-       server.decision(function(req, done) {
-
-         //return done(null, { scope: req.scope })
-         return done(null, { scope: req.oauth2.req.scope })
-       })
+   login.ensureLoggedIn(),
+   server.decision(function(req, done) {
+     return done(null, { scope: req.body.scope })
+   })
 ];
+
+// Register supported grant types.
+//
+// OAuth 2.0 specifies a framework that allows users to grant client
+// applications limited access to their protected resources.  It does this
+// through a process of the user granting access, and the client exchanging
+// the grant for an access token.
+
+// Grant authorization codes.  The callback takes the `client` requesting
+// authorization, the `redirectURI` (which is used as a verifier in the
+// subsequent exchange), the authenticated `user` granting access, and
+// their response, which contains approved scope, duration, etc. as parsed by
+// the application.  The application issues a code, which is bound to these
+// values, and will be exchanged for an access token.
+
+// 3
+server.grant(oauth2orize.grant.code(function(client, redirectURI, user, ares, done) {
+  var code = utils.uid(16);
+
+  console.log("* Get grant code client[", client, "] code[", code ,"] ares[", ares ,"] user[", user ,"]");
+  
+  db.authorizationCodes.save(code, client.id, redirectURI, user.id, ares.scope, function(err) {
+    if (err) { return done(err); }
+    done(null, code);
+  });
+}));
+
+// Exchange authorization codes for access tokens.  The callback accepts the
+// `client`, which is exchanging `code` and any `redirectURI` from the
+// authorization request for verification.  If these values are validated, the
+// application issues an access token on behalf of the user who authorized the
+// code.
+
+// 4
+server.exchange(oauth2orize.exchange.code(function(client, code, redirectURI, done) {
+  db.authorizationCodes.find(code, function(err, authCode) {
+    if (err) { return done(err); }
+    if (client.id !== authCode.clientID) { return done(null, false); }
+    if (redirectURI !== authCode.redirectURI) { return done(null, false); }
+    
+    var token = utils.uid(256);
+    
+    console.log("* Get access token [" + token + "] code[" + code + "] scope[" + authCode.scope + "]");
+
+    db.accessTokens.save(token, authCode.userID, authCode.clientID, authCode.scope, function(err) {
+      if (err) { return done(err); }
+      done(null, token);
+    });
+  });
+}));
 
 // token endpoint
 //

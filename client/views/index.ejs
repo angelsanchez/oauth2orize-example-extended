@@ -1,6 +1,10 @@
 <% if (!user) { %>
 	<h2>Welcome!</h2>
-	<p>Please <a href="./login">log in</a>.</p>
 <% } else { %>
 	<h2>Hello, <%= user.name %>.</h2>
+	<h3>AppExample Services:</h3>
+	<ul>
+		<li><a href="/userinfo">userinfo</a></li>
+		<li><a href="/personaldata">personaldata</a></li>
+	</ul>
 <% } %>

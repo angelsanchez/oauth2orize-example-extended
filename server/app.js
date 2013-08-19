@@ -6,35 +6,24 @@ var express = require('express')
   , site = require('./site')
   , oauth2 = require('./oauth2')
   , user = require('./user')
-  , util = require('util')
-  
+  , partials = require('express-partials')
   
 // Express configuration
-  
-var app = express.createServer();
+var app = express();
+app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
-app.use(express.logger());
+app.use(partials());
+//app.use(express.logger());
 app.use(express.cookieParser());
 app.use(express.bodyParser());
 app.use(express.session({ secret: 'keyboard cat' }));
-/*
-app.use(function(req, res, next) {
-  console.log('-- session --');
-  console.dir(req.session);
-  //console.log(util.inspect(req.session, true, 3));
-  console.log('-------------');
-  next()
-});
-*/
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(app.router);
 app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 
 // Passport configuration
-
 require('./auth');
-
 
 app.get('/', site.index);
 app.get('/login', site.loginForm);
@@ -47,8 +36,9 @@ app.post('/dialog/authorize/decision', oauth2.decision);
 app.post('/oauth/token', oauth2.token);
 
 app.get('/api/userinfo', user.info);
-app.get('/api/userfullinfo', user.fullinfo);
+
+// Protected resource, requires "personaldata" scope
+app.get('/api/user/personaldata', user.personaldata);
 
 app.listen(3000);
-
 console.log("http://localhost:3000");

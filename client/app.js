@@ -1,8 +1,8 @@
 var express = require('express')
   , passport = require('passport')
-  , util = require('util')
   , AppStrategy = require('./auth').Strategy
-  , http = require('http')
+  , utils = require('./utils')
+  , partials = require('express-partials')
 
 
 var CLIENT_ID = "abc123";
@@ -64,7 +64,8 @@ var app = express();
 app.configure(function() {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
-  app.use(express.logger());
+  app.use(partials());
+  //app.use(express.logger());
   app.use(express.cookieParser());
   app.use(express.bodyParser());
   app.use(express.methodOverride());
@@ -96,7 +97,7 @@ app.get('/login', function(req, res){
 //   redirecting the user to appexample.com.  After authorization, appexample
 //   will redirect the user back to this application at /auth/appexample/callback
 app.get('/auth/appexample',
-  passport.authenticate('appexample', { scope: 'userinfo userfullinfo' }),
+  passport.authenticate('appexample', { scope: 'personaldata' }),
   function(req, res){
     console.log("Authorizating...")
   });
@@ -117,43 +118,6 @@ app.get('/logout', function(req, res){
   res.redirect('/');
 });
 
-app.get('/userinfo', ensureAuthenticated, function (req, res) {
-  res.json(req.user)
-});
-
-
-app.get('/userfullinfo', ensureAuthenticated, function (req, res) {
-  console.log("doing call...")
-
-  var options = {
-    host: 'localhost',
-    path: '/api/userfullinfo',
-    port: '3000',
-    headers: {'Authorization': 'Bearer ' + req.user.accessToken}
-  };
-
-  http.get(options, function (response) {
-    console.log("response.statusCode -> ",response.statusCode)
-
-    var str = '';
-
-    response.on('data', function (chunk) {
-      str += chunk;
-    });
-
-    response.on('end', function () {
-      res.send(str);
-    });
-  }).on("error", function(e){
-    console.log("Got error: " + e.message);
-  });;
-});
-
-app.listen(8080);
-
-console.log("http://localhost:8080");
-
-
 // Simple route middleware to ensure user is authenticated.
 //   Use this route middleware on any resource that needs to be protected.  If
 //   the request is authenticated (typically via a persistent login session),
@@ -163,3 +127,18 @@ function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) { return next(); }
   res.redirect('/login');
 }
+
+app.get('/userinfo', ensureAuthenticated, function (req, res) {
+  res.json(req.user)
+});
+
+
+app.get('/personaldata', ensureAuthenticated, function (req, res) {
+  utils.getProtectedResource('/api/user/personaldata', req.user.accessToken, function (err, data) {
+    if (err) { return new Error('failed to fetch user full info: ' + err.message); }
+    res.send(data);
+  })
+});
+
+app.listen(8080);
+console.log("http://localhost:8080");

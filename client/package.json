@@ -11,7 +11,8 @@
     "passport": "0.1.17",
     "connect-ensure-login": "0.1.1",
     "passport-oauth": "0.1.15",
-    "ejs": "~0.8.4"
+    "ejs": "0.8.4",
+    "express-partials": "0.1.1"
   },
   "engine": "node >= 0.10.15"
 }

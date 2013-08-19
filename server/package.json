@@ -10,6 +10,7 @@
     "passport-http-bearer": "1.0.1",
     "ejs": "0.8.4",
     "passport-oauth2-client-password": "0.1.1",
-    "connect-ensure-login": "0.1.1"
+    "connect-ensure-login": "0.1.1",
+    "express-partials": "0.1.1"
   }
 }
