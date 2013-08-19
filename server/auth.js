@@ -106,7 +106,7 @@ passport.use(new BearerStrategy(
         if (err) { return done(err); }
         if (!user) { return done(null, false); }
 
-        var info = { scope: token.scope }
+        var info = { scope: token.scope, expiration: token.expiration }
         done(null, user, info);
       });
     });

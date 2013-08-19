@@ -17,18 +17,22 @@ exports.info = [
 
 exports.personaldata = [
 	passport.authenticate('bearer', { session: false }),
-  ensureScope("personaldata"),
+  ensureValidToken("personaldata"),
 	function(req, res) {
     res.json(req.user)
 	}
 ]
 
 
-function ensureScope (scope) {
+function ensureValidToken (scope) {
   return function (req, res, next) {
     console.log("ensureScope[" + scope + "], req.authInfo=", req.authInfo)
+    console.log("req.user=", req.user)
 
-    if ( !req.authInfo || !req.authInfo.scope || req.authInfo.scope.indexOf(scope) == -1 ) {
+    // Check token expiration
+    if ( req.authInfo.expiration < new Date().getTime() ) {
+      res.send(401);
+    } else if ( !req.authInfo || !req.authInfo.scope || req.authInfo.scope.indexOf(scope) == -1 ) {
       res.send(403);
     } else {
       next();

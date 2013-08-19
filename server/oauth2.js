@@ -137,7 +137,7 @@ server.exchange(oauth2orize.exchange.code(function(client, code, redirectURI, do
 
     db.accessTokens.save(token, authCode.userID, authCode.clientID, authCode.scope, function(err) {
       if (err) { return done(err); }
-      done(null, token);
+      done(null, token, null, { 'expires_in': 3600 });
     });
   });
 }));
